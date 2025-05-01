@@ -80,6 +80,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include=".github\workflows\" />
+	  <None Include=".github\workflows\maui-android-build.yml" />
 	</ItemGroup>
 </Project>
