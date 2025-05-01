@@ -1,0 +1,65 @@
+name: Build .NET MAUI Android App
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Install MAUI Android Workload
+      run: dotnet workload install maui-android
+
+    - name: Replace TargetFrameworks for Android Only
+      run: sed -i 's#<TargetFrameworks>.*</TargetFrameworks>#<TargetFramework>net8.0-android</TargetFramework>#g' InventoryAndroidAppMate.csproj
+
+    - name: Restore NuGet Packages
+      run: dotnet restore InventoryAndroidAppMate.csproj
+
+    - name: Build Android App
+      run: dotnet build InventoryAndroidAppMate.csproj --configuration Release -f:net8.0-android
+
+    - name: Find APK file
+      run: |
+        find . -name "*.apk"
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: InventoryAndroidAppMate-Android-APK
+        path: '**/bin/Release/net8.0-android/*.apk'
+
+    - name: Auto-Increment Patch Version
+      id: bump_version
+      run: |
+        # Extract current version
+        VERSION=$(grep '<ApplicationVersion>' InventoryAndroidAppMate.csproj | sed -E 's/.*>([0-9]+)\.([0-9]+)\.([0-9]+)<.*/\1.\2.\3/')
+        echo "Current Version: $VERSION"
+
+        # Split version into components
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+        # Increment PATCH version
+        PATCH=$((PATCH+1))
+
+        # New version
+        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+        echo "New Version: $NEW_VERSION"
+
+        # Replace in csproj
+        sed -i "s#<ApplicationVersion>.*</ApplicationVersion>#<ApplicationVersion>$NEW_VERSION</ApplicationVersion>#g" InventoryAndroidAppMate.csproj
+        sed -i "s#<ApplicationDisplayVersion>.*</ApplicationDisplayVersion>#<ApplicationDisplayVersion>$NEW_VERSION</ApplicationDisplayVersion>#g" InventoryAndroidApp.csproj
+
+        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV

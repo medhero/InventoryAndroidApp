@@ -1,0 +1,4 @@
+@MockInventoryApi_HostAddress = http://localhost:5190
+
+GET {{MockInventoryApi_HostAddress}}/api/items
+Accept: application/json
