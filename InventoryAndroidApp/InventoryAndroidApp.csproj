@@ -80,6 +80,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Include=".github\worflows\build-android.yml" />
+	  <Folder Include=".github\workflows\" />
 	</ItemGroup>
 </Project>
