@@ -1,0 +1,58 @@
+﻿name: Build .NET MAUI Android App
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0'
+
+    - name: Install MAUI Android Workload
+      run: dotnet workload install maui-android
+
+    - name: Replace TargetFrameworks for Android Only
+      run: sed -i 's#<TargetFrameworks>.*</TargetFrameworks>#<TargetFramework>net8.0-android</TargetFramework>#g' InventoryAndroidApp/InventoryAndroidApp.csproj
+
+    - name: Restore NuGet Packages
+      run: dotnet restore InventoryAndroidApp/InventoryAndroidApp.csproj
+
+    - name: Build Android App
+      run: dotnet build InventoryAndroidApp/InventoryAndroidApp.csproj --configuration Release -f:net8.0-android
+
+    - name: Find APK file
+      run: |
+        find . -name "*.apk"
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: InventoryAndroidApp-Android-APK
+        path: '**/bin/Release/net8.0-android/*.apk'
+
+    - name: Auto-Increment Patch Version
+      id: bump_version
+      run: |
+        VERSION=$(grep '<ApplicationVersion>' InventoryAndroidApp/InventoryAndroidApp.csproj | sed -E 's/.*>([0-9]+)\.([0-9]+)\.([0-9]+)<.*/\1.\2.\3/')
+        echo "Current Version: $VERSION"
+
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+        PATCH=$((PATCH+1))
+        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+        echo "New Version: $NEW_VERSION"
+
+        sed -i "s#<ApplicationVersion>.*</ApplicationVersion>#<ApplicationVersion>$NEW_VERSION</ApplicationVersion>#g" InventoryAndroidApp/InventoryAndroidApp.csproj
+        sed -i "s#<ApplicationDisplayVersion>.*</ApplicationDisplayVersion>#<ApplicationDisplayVersion>$NEW_VERSION</ApplicationDisplayVersion>#g" InventoryAndroidApp/InventoryAndroidApp.csproj
+
+        echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
