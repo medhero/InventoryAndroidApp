@@ -78,8 +78,4 @@
 	    <Generator>MSBuild:Compile</Generator>
 	  </MauiXaml>
 	</ItemGroup>
-
-	<ItemGroup>
-	  <None Include=".github\workflows\maui-android-build.yml" />
-	</ItemGroup>
 </Project>
